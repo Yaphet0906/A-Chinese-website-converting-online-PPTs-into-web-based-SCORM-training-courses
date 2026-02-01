@@ -1,0 +1,1832 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智学云 - PPT转SCORM培训系统</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; 
+            line-height: 1.6; 
+            color: #1f2937;
+            background: #f3f4f6;
+        }
+        
+        /* 导航栏 */
+        nav {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 64px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+        
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+        
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        
+        .nav-back {
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .nav-back:hover {
+            color: #7c3aed;
+        }
+        
+        .nav-steps {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .nav-step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: #6b7280;
+            background: #f3f4f6;
+        }
+        
+        .nav-step.active {
+            background: linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
+            color: white;
+        }
+        
+        .nav-step.completed {
+            background: #d1fae5;
+            color: #059669;
+        }
+        
+        .nav-step-number {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        /* 主容器 */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        /* 步骤面板 */
+        .step-panel {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .step-panel.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 上传区域 */
+        .upload-area {
+            background: white;
+            border-radius: 16px;
+            padding: 60px;
+            text-align: center;
+            border: 2px dashed #e5e7eb;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            border-color: #7c3aed;
+            background: #faf5ff;
+        }
+        
+        .upload-area.dragover {
+            border-color: #7c3aed;
+            background: #f3e8ff;
+        }
+        
+        .upload-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #f3e8ff 0%, #dbeafe 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            margin: 0 auto 24px;
+        }
+        
+        .upload-area h2 {
+            font-size: 1.5rem;
+            color: #1f2937;
+            margin-bottom: 12px;
+        }
+        
+        .upload-area p {
+            color: #6b7280;
+            margin-bottom: 24px;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
+            color: white;
+            padding: 14px 32px;
+            border-radius: 8px;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(124, 58, 237, 0.3);
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .supported-formats {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .format-tags {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .format-tag {
+            padding: 6px 16px;
+            background: #f3f4f6;
+            border-radius: 50px;
+            font-size: 0.875rem;
+            color: #4b5563;
+        }
+        
+        /* 文件信息 */
+        .file-info {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-top: 24px;
+            display: none;
+        }
+        
+        .file-info.show {
+            display: block;
+        }
+        
+        .file-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .file-icon {
+            width: 56px;
+            height: 56px;
+            background: #f3e8ff;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+        
+        .file-details h3 {
+            font-size: 1.125rem;
+            color: #1f2937;
+        }
+        
+        .file-details p {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        
+        .progress-text {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        
+        /* 内容预览 */
+        .content-preview {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 24px;
+        }
+        
+        .slides-sidebar {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+        
+        .slides-sidebar h3 {
+            font-size: 1rem;
+            color: #1f2937;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .slide-count {
+            background: #f3e8ff;
+            color: #7c3aed;
+            padding: 4px 12px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+        }
+        
+        .slide-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .slide-item {
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        
+        .slide-item:hover {
+            background: #f9fafb;
+        }
+        
+        .slide-item.active {
+            background: #f3e8ff;
+            border-color: #7c3aed;
+        }
+        
+        .slide-item-number {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            margin-bottom: 4px;
+        }
+        
+        .slide-item-title {
+            font-size: 0.875rem;
+            color: #1f2937;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .slide-item.has-quiz::after {
+            content: '📝';
+            margin-left: 8px;
+        }
+        
+        /* 编辑区域 */
+        .editor-area {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+        }
+        
+        .editor-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .editor-header h2 {
+            font-size: 1.25rem;
+            color: #1f2937;
+        }
+        
+        .editor-actions {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+        
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(124, 58, 237, 0.3);
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+        
+        .form-input,
+        .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        .form-input:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+        }
+        
+        .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        /* 测验区域 */
+        .quiz-section {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 24px;
+        }
+        
+        .quiz-section h4 {
+            font-size: 1rem;
+            color: #1f2937;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .quiz-type-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .quiz-type-tab {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            background: white;
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s;
+        }
+        
+        .quiz-type-tab.active {
+            background: linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
+            color: white;
+            border-color: transparent;
+        }
+        
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .quiz-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .quiz-option input[type="text"] {
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-size: 0.875rem;
+        }
+        
+        .quiz-option input[type="text"]:focus {
+            outline: none;
+        }
+        
+        .quiz-option input[type="radio"],
+        .quiz-option input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .quiz-option.correct {
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+        
+        .add-option-btn {
+            padding: 12px;
+            border: 2px dashed #e5e7eb;
+            border-radius: 8px;
+            background: transparent;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .add-option-btn:hover {
+            border-color: #7c3aed;
+            color: #7c3aed;
+        }
+        
+        /* SCORM设置 */
+        .scorm-settings {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .scorm-settings h3 {
+            font-size: 1.125rem;
+            color: #1f2937;
+            margin-bottom: 20px;
+        }
+        
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .setting-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .setting-item label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .setting-item select,
+        .setting-item input {
+            padding: 10px 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.875rem;
+        }
+        
+        /* 预览区域 */
+        .preview-area {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+        }
+        
+        .preview-frame {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            background: #f9fafb;
+        }
+        
+        /* 完成页面 */
+        .success-panel {
+            text-align: center;
+            padding: 60px;
+        }
+        
+        .success-icon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            margin: 0 auto 32px;
+            color: white;
+        }
+        
+        .success-panel h2 {
+            font-size: 2rem;
+            color: #1f2937;
+            margin-bottom: 16px;
+        }
+        
+        .success-panel p {
+            color: #6b7280;
+            margin-bottom: 32px;
+        }
+        
+        .download-info {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            margin: 0 auto 32px;
+            text-align: left;
+        }
+        
+        .download-info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .download-info-item:last-child {
+            border-bottom: none;
+        }
+        
+        .download-info-item span:first-child {
+            color: #6b7280;
+        }
+        
+        .download-info-item span:last-child {
+            font-weight: 500;
+            color: #1f2937;
+        }
+        
+        /* 响应式 */
+        @media (max-width: 1024px) {
+            .content-preview {
+                grid-template-columns: 1fr;
+            }
+            
+            .slides-sidebar {
+                max-height: 200px;
+            }
+            
+            .slide-list {
+                flex-direction: row;
+                overflow-x: auto;
+            }
+            
+            .slide-item {
+                min-width: 150px;
+            }
+            
+            .nav-steps {
+                display: none;
+            }
+        }
+        
+        /* 加载动画 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .loading-overlay.show {
+            display: flex;
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #f3f4f6;
+            border-top-color: #7c3aed;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            margin-top: 20px;
+            color: #6b7280;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav>
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">✨</div>
+                <span class="logo-text">智学云 SCORM</span>
+            </a>
+            <a href="index.html" class="nav-back">
+                ← 返回首页
+            </a>
+            <div class="nav-steps">
+                <div class="nav-step active" data-step="1">
+                    <span class="nav-step-number">1</span>
+                    <span>上传PPT</span>
+                </div>
+                <div class="nav-step" data-step="2">
+                    <span class="nav-step-number">2</span>
+                    <span>内容编辑</span>
+                </div>
+                <div class="nav-step" data-step="3">
+                    <span class="nav-step-number">3</span>
+                    <span>SCORM设置</span>
+                </div>
+                <div class="nav-step" data-step="4">
+                    <span class="nav-step-number">4</span>
+                    <span>预览下载</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主容器 -->
+    <div class="main-container">
+        <!-- 步骤1: 上传PPT -->
+        <div class="step-panel active" id="step1">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <h2>上传培训课件</h2>
+                <p>支持 PPT、PPTX、PDF、Word 格式<br>拖拽文件到此处或点击上传</p>
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    选择文件
+                </button>
+                <input type="file" id="fileInput" class="file-input" accept=".ppt,.pptx,.pdf,.doc,.docx">
+                
+                <div class="supported-formats">
+                    <p style="color: #9ca3af; font-size: 0.875rem;">支持的格式</p>
+                    <div class="format-tags">
+                        <span class="format-tag">📊 PowerPoint (.ppt, .pptx)</span>
+                        <span class="format-tag">📄 PDF (.pdf)</span>
+                        <span class="format-tag">📝 Word (.doc, .docx)</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="file-info" id="fileInfo">
+                <div class="file-header">
+                    <div class="file-icon" id="fileIcon">📊</div>
+                    <div class="file-details">
+                        <h3 id="fileName">文件名.pptx</h3>
+                        <p id="fileSize">2.5 MB</p>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+                <p class="progress-text" id="progressText">正在解析文件内容...</p>
+            </div>
+        </div>
+
+        <!-- 步骤2: 内容编辑 -->
+        <div class="step-panel" id="step2">
+            <div class="content-preview">
+                <div class="slides-sidebar">
+                    <h3>
+                        章节列表
+                        <span class="slide-count" id="slideCount">0 页</span>
+                    </h3>
+                    <div class="slide-list" id="slideList">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+                
+                <div class="editor-area">
+                    <div class="editor-header">
+                        <h2>📑 章节内容编辑</h2>
+                        <div class="editor-actions">
+                            <button class="btn btn-secondary" onclick="generateQuiz()">
+                                🔄 重新生成题目
+                            </button>
+                            <button class="btn btn-primary" onclick="goToStep(3)">
+                                下一步 →
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">章节标题</label>
+                        <input type="text" class="form-input" id="slideTitle" placeholder="输入章节标题">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">章节内容</label>
+                        <textarea class="form-textarea" id="slideContent" placeholder="章节内容将自动从PPT中提取..."></textarea>
+                    </div>
+                    
+                    <div class="quiz-section">
+                        <h4>📝 章节测验</h4>
+                        
+                        <div class="quiz-type-tabs">
+                            <div class="quiz-type-tab active" data-type="single">单选题</div>
+                            <div class="quiz-type-tab" data-type="multiple">多选题</div>
+                            <div class="quiz-type-tab" data-type="truefalse">判断题</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">题目</label>
+                            <input type="text" class="form-input" id="quizQuestion" placeholder="输入测验题目">
+                        </div>
+                        
+                        <div class="quiz-options" id="quizOptions">
+                            <div class="quiz-option">
+                                <input type="radio" name="correct" value="0">
+                                <input type="text" placeholder="选项 A">
+                            </div>
+                            <div class="quiz-option">
+                                <input type="radio" name="correct" value="1">
+                                <input type="text" placeholder="选项 B">
+                            </div>
+                            <div class="quiz-option">
+                                <input type="radio" name="correct" value="2">
+                                <input type="text" placeholder="选项 C">
+                            </div>
+                            <div class="quiz-option">
+                                <input type="radio" name="correct" value="3">
+                                <input type="text" placeholder="选项 D">
+                            </div>
+                        </div>
+                        
+                        <button class="add-option-btn" onclick="addQuizOption()">
+                            + 添加选项
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 步骤3: SCORM设置 -->
+        <div class="step-panel" id="step3">
+            <div class="scorm-settings">
+                <h3>⚙️ SCORM 导出设置</h3>
+                <div class="settings-grid">
+                    <div class="setting-item">
+                        <label>SCORM 版本</label>
+                        <select id="scormVersion">
+                            <option value="1.2">SCORM 1.2 (推荐)</option>
+                            <option value="2004">SCORM 2004</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label>课程标题</label>
+                        <input type="text" id="courseTitle" placeholder="输入课程标题">
+                    </div>
+                    <div class="setting-item">
+                        <label>课程描述</label>
+                        <input type="text" id="courseDescription" placeholder="输入课程描述">
+                    </div>
+                    <div class="setting-item">
+                        <label>通过分数 (%)</label>
+                        <input type="number" id="passingScore" value="80" min="0" max="100">
+                    </div>
+                    <div class="setting-item">
+                        <label>最大尝试次数</label>
+                        <input type="number" id="maxAttempts" value="3" min="1" max="10">
+                    </div>
+                    <div class="setting-item">
+                        <label>是否允许跳过题目</label>
+                        <select id="allowSkip">
+                            <option value="false">不允许（必须答题）</option>
+                            <option value="true">允许跳过</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="text-align: center;">
+                <button class="btn btn-secondary" onclick="goToStep(2)" style="margin-right: 12px;">
+                    ← 上一步
+                </button>
+                <button class="btn btn-primary" onclick="generateSCORM()">
+                    生成 SCORM 包 →
+                </button>
+            </div>
+        </div>
+
+        <!-- 步骤4: 预览下载 -->
+        <div class="step-panel" id="step4">
+            <div class="success-panel" id="successPanel">
+                <div class="success-icon">✓</div>
+                <h2>SCORM 课程包已生成！</h2>
+                <p>您的培训课程已成功转换为 SCORM 格式</p>
+                
+                <div class="download-info">
+                    <div class="download-info-item">
+                        <span>文件名</span>
+                        <span id="downloadFileName">course_scorm.zip</span>
+                    </div>
+                    <div class="download-info-item">
+                        <span>SCORM 版本</span>
+                        <span id="downloadScormVersion">SCORM 1.2</span>
+                    </div>
+                    <div class="download-info-item">
+                        <span>章节数量</span>
+                        <span id="downloadSlideCount">5 章</span>
+                    </div>
+                    <div class="download-info-item">
+                        <span>测验题目</span>
+                        <span id="downloadQuizCount">5 题</span>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 16px; justify-content: center;">
+                    <button class="btn btn-secondary" onclick="previewSCORM()">
+                        👁 预览课程
+                    </button>
+                    <button class="btn btn-success" onclick="downloadSCORM()">
+                        📥 下载 SCORM 包
+                    </button>
+                </div>
+            </div>
+            
+            <div class="preview-area" id="previewArea" style="display: none; margin-top: 24px;">
+                <div class="editor-header">
+                    <h2>👁 课程预览</h2>
+                    <div class="editor-actions">
+                        <button class="btn btn-secondary" onclick="closePreview()">
+                            关闭预览
+                        </button>
+                    </div>
+                </div>
+                <iframe class="preview-frame" id="previewFrame"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载动画 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div style="text-align: center;">
+            <div class="loading-spinner"></div>
+            <p class="loading-text" id="loadingText">正在处理...</p>
+        </div>
+    </div>
+
+    <script>
+        // 全局状态
+        let currentStep = 1;
+        let slides = [];
+        let currentSlideIndex = 0;
+        let scormPackage = null;
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            setupUploadArea();
+            setupQuizTabs();
+        });
+        
+        // 设置上传区域
+        function setupUploadArea() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            
+            uploadArea.addEventListener('click', () => fileInput.click());
+            
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFile(files[0]);
+                }
+            });
+            
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0]);
+                }
+            });
+        }
+        
+        // 处理上传的文件
+        function handleFile(file) {
+            const fileInfo = document.getElementById('fileInfo');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+            const fileIcon = document.getElementById('fileIcon');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            // 显示文件信息
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            
+            // 设置文件图标
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (ext === 'pdf') fileIcon.textContent = '📄';
+            else if (['doc', 'docx'].includes(ext)) fileIcon.textContent = '📝';
+            else fileIcon.textContent = '📊';
+            
+            fileInfo.classList.add('show');
+            
+            // 模拟解析进度
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    
+                    setTimeout(() => {
+                        parseContent(file);
+                    }, 500);
+                }
+                progressFill.style.width = progress + '%';
+            }, 200);
+        }
+        
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // 解析内容（模拟）
+        function parseContent(file) {
+            showLoading('正在解析文件内容...');
+            
+            setTimeout(() => {
+                // 模拟从PPT提取的章节内容
+                slides = [
+                    {
+                        id: 1,
+                        title: '第一章：培训概述',
+                        content: '本章介绍了培训的目标、范围和预期成果。通过本课程的学习，学员将掌握核心知识点，并能够在实际工作中应用所学内容。',
+                        quiz: {
+                            type: 'single',
+                            question: '本课程的主要目标是什么？',
+                            options: [
+                                { text: '掌握核心知识点并实际应用', correct: true },
+                                { text: '通过理论考试', correct: false },
+                                { text: '完成课后作业', correct: false },
+                                { text: '获得培训证书', correct: false }
+                            ]
+                        }
+                    },
+                    {
+                        id: 2,
+                        title: '第二章：基础概念',
+                        content: '本章详细讲解了相关的基础概念和理论知识，为后续内容的学习打下坚实基础。重点包括：定义、分类、特点和应用场景。',
+                        quiz: {
+                            type: 'single',
+                            question: '以下哪项不属于本章的重点内容？',
+                            options: [
+                                { text: '定义和分类', correct: false },
+                                { text: '特点分析', correct: false },
+                                { text: '高级技巧', correct: true },
+                                { text: '应用场景', correct: false }
+                            ]
+                        }
+                    },
+                    {
+                        id: 3,
+                        title: '第三章：操作步骤',
+                        content: '本章通过详细的步骤说明和图示，指导学员完成标准操作流程。每个步骤都配有注意事项和常见问题解答。',
+                        quiz: {
+                            type: 'multiple',
+                            question: '标准操作流程包括哪些要素？（多选）',
+                            options: [
+                                { text: '步骤说明', correct: true },
+                                { text: '图示演示', correct: true },
+                                { text: '注意事项', correct: true },
+                                { text: '历史背景', correct: false }
+                            ]
+                        }
+                    },
+                    {
+                        id: 4,
+                        title: '第四章：案例分析',
+                        content: '本章通过真实案例的分析，帮助学员理解理论知识在实际工作中的应用。案例涵盖成功经验和失败教训。',
+                        quiz: {
+                            type: 'single',
+                            question: '案例分析的主要目的是什么？',
+                            options: [
+                                { text: '增加课程趣味性', correct: false },
+                                { text: '理解理论的实际应用', correct: true },
+                                { text: '记忆更多知识点', correct: false },
+                                { text: '准备考试', correct: false }
+                            ]
+                        }
+                    },
+                    {
+                        id: 5,
+                        title: '第五章：总结与考核',
+                        content: '本章对课程内容进行全面总结，明确重点和难点。同时介绍考核方式和通过标准，帮助学员做好复习准备。',
+                        quiz: {
+                            type: 'truefalse',
+                            question: '通过考核需要达到80分以上的成绩。',
+                            options: [
+                                { text: '正确', correct: true },
+                                { text: '错误', correct: false }
+                            ]
+                        }
+                    }
+                ];
+                
+                hideLoading();
+                renderSlideList();
+                goToStep(2);
+            }, 1500);
+        }
+        
+        // 渲染章节列表
+        function renderSlideList() {
+            const slideList = document.getElementById('slideList');
+            const slideCount = document.getElementById('slideCount');
+            
+            slideCount.textContent = slides.length + ' 章';
+            
+            slideList.innerHTML = slides.map((slide, index) => `
+                <div class="slide-item ${index === 0 ? 'active' : ''} ${slide.quiz ? 'has-quiz' : ''}" 
+                     onclick="selectSlide(${index})">
+                    <div class="slide-item-number">第 ${index + 1} 章</div>
+                    <div class="slide-item-title">${slide.title}</div>
+                </div>
+            `).join('');
+            
+            if (slides.length > 0) {
+                selectSlide(0);
+            }
+        }
+        
+        // 选择章节
+        function selectSlide(index) {
+            currentSlideIndex = index;
+            const slide = slides[index];
+            
+            // 更新列表选中状态
+            document.querySelectorAll('.slide-item').forEach((item, i) => {
+                item.classList.toggle('active', i === index);
+            });
+            
+            // 填充编辑表单
+            document.getElementById('slideTitle').value = slide.title;
+            document.getElementById('slideContent').value = slide.content;
+            
+            // 填充测验
+            if (slide.quiz) {
+                document.getElementById('quizQuestion').value = slide.quiz.question;
+                renderQuizOptions(slide.quiz);
+            }
+        }
+        
+        // 渲染测验选项
+        function renderQuizOptions(quiz) {
+            const optionsContainer = document.getElementById('quizOptions');
+            const quizTabs = document.querySelectorAll('.quiz-type-tab');
+            
+            // 设置测验类型
+            quizTabs.forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.type === quiz.type);
+            });
+            
+            // 渲染选项
+            const inputType = quiz.type === 'multiple' ? 'checkbox' : 'radio';
+            
+            optionsContainer.innerHTML = quiz.options.map((opt, i) => `
+                <div class="quiz-option ${opt.correct ? 'correct' : ''}">
+                    <input type="${inputType}" name="correct" value="${i}" ${opt.correct ? 'checked' : ''}>
+                    <input type="text" value="${opt.text}" placeholder="选项 ${String.fromCharCode(65 + i)}">
+                </div>
+            `).join('');
+        }
+        
+        // 设置测验类型标签
+        function setupQuizTabs() {
+            document.querySelectorAll('.quiz-type-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.quiz-type-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    // 更新选项输入类型
+                    const type = tab.dataset.type;
+                    const inputs = document.querySelectorAll('#quizOptions input[type="radio"], #quizOptions input[type="checkbox"]');
+                    inputs.forEach(input => {
+                        input.type = type === 'multiple' ? 'checkbox' : 'radio';
+                    });
+                });
+            });
+        }
+        
+        // 添加测验选项
+        function addQuizOption() {
+            const optionsContainer = document.getElementById('quizOptions');
+            const optionCount = optionsContainer.children.length;
+            const activeType = document.querySelector('.quiz-type-tab.active').dataset.type;
+            const inputType = activeType === 'multiple' ? 'checkbox' : 'radio';
+            
+            const newOption = document.createElement('div');
+            newOption.className = 'quiz-option';
+            newOption.innerHTML = `
+                <input type="${inputType}" name="correct" value="${optionCount}">
+                <input type="text" placeholder="选项 ${String.fromCharCode(65 + optionCount)}">
+            `;
+            optionsContainer.appendChild(newOption);
+        }
+        
+        // 生成测验题目
+        function generateQuiz() {
+            showLoading('AI 正在生成测验题目...');
+            
+            setTimeout(() => {
+                const slide = slides[currentSlideIndex];
+                const questions = [
+                    '以下哪项是本章节的核心内容？',
+                    '本章提到的关键概念是什么？',
+                    '根据本章内容，正确的做法是？',
+                    '本章强调了哪些重点？'
+                ];
+                
+                slide.quiz = {
+                    type: 'single',
+                    question: questions[Math.floor(Math.random() * questions.length)],
+                    options: [
+                        { text: '正确选项 A', correct: true },
+                        { text: '错误选项 B', correct: false },
+                        { text: '错误选项 C', correct: false },
+                        { text: '错误选项 D', correct: false }
+                    ]
+                };
+                
+                renderQuizOptions(slide.quiz);
+                renderSlideList();
+                hideLoading();
+            }, 1500);
+        }
+        
+        // 切换步骤
+        function goToStep(step) {
+            currentStep = step;
+            
+            // 更新导航步骤
+            document.querySelectorAll('.nav-step').forEach((navStep, i) => {
+                navStep.classList.remove('active', 'completed');
+                if (i + 1 < step) navStep.classList.add('completed');
+                if (i + 1 === step) navStep.classList.add('active');
+            });
+            
+            // 切换面板
+            document.querySelectorAll('.step-panel').forEach((panel, i) => {
+                panel.classList.toggle('active', i + 1 === step);
+            });
+        }
+        
+        // 生成SCORM
+        function generateSCORM() {
+            showLoading('正在生成 SCORM 课程包...');
+            
+            const settings = {
+                version: document.getElementById('scormVersion').value,
+                title: document.getElementById('courseTitle').value || '未命名课程',
+                description: document.getElementById('courseDescription').value || '',
+                passingScore: document.getElementById('passingScore').value,
+                maxAttempts: document.getElementById('maxAttempts').value,
+                allowSkip: document.getElementById('allowSkip').value === 'true'
+            };
+            
+            setTimeout(() => {
+                scormPackage = createSCORMPackage(settings);
+                
+                // 更新下载信息
+                document.getElementById('downloadFileName').textContent = 
+                    settings.title.replace(/\s+/g, '_') + '_scorm.zip';
+                document.getElementById('downloadScormVersion').textContent = 
+                    settings.version === '1.2' ? 'SCORM 1.2' : 'SCORM 2004';
+                document.getElementById('downloadSlideCount').textContent = slides.length + ' 章';
+                document.getElementById('downloadQuizCount').textContent = 
+                    slides.filter(s => s.quiz).length + ' 题';
+                
+                hideLoading();
+                goToStep(4);
+            }, 2000);
+        }
+        
+        // 创建SCORM包
+        function createSCORMPackage(settings) {
+            const zip = new JSZip();
+            const version = settings.version;
+            
+            // 创建IMSManifest.xml
+            const manifest = generateManifest(settings);
+            zip.file('imsmanifest.xml', manifest);
+            
+            // 创建课程内容
+            const courseHTML = generateCourseHTML(settings);
+            zip.file('index.html', courseHTML);
+            
+            // 创建SCORM API文件
+            const scormAPI = generateSCORMAPI(version);
+            zip.file('scorm_api.js', scormAPI);
+            
+            // 创建样式文件
+            const css = generateCSS();
+            zip.file('course.css', css);
+            
+            return zip;
+        }
+        
+        // 生成IMSManifest.xml
+        function generateManifest(settings) {
+            return `<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="${settings.title.replace(/\s+/g, '_')}" version="1.0"
+    xmlns="http://www.imsglobal.org/xsd/imscp_v1p1"
+    xmlns:adlcp="http://www.adlnet.org/xsd/adlcp_v1p3"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.imsglobal.org/xsd/imscp_v1p1 imscp_v1p1.xsd
+                         http://www.adlnet.org/xsd/adlcp_v1p3 adlcp_v1p3.xsd">
+    <metadata>
+        <schema>ADL SCORM</schema>
+        <schemaversion>${settings.version}</schemaversion>
+    </metadata>
+    <organizations default="org1">
+        <organization identifier="org1">
+            <title>${settings.title}</title>
+            <item identifier="item1" identifierref="resource1">
+                <title>${settings.title}</title>
+            </item>
+        </organization>
+    </organizations>
+    <resources>
+        <resource identifier="resource1" type="webcontent" adlcp:scormtype="sco" href="index.html">
+            <file href="index.html"/>
+            <file href="scorm_api.js"/>
+            <file href="course.css"/>
+        </resource>
+    </resources>
+</manifest>`;
+        }
+        
+        // 生成课程HTML
+        function generateCourseHTML(settings) {
+            const slidesHTML = slides.map((slide, index) => `
+                <div class="slide ${index === 0 ? 'active' : ''}" data-slide="${index}">
+                    <div class="slide-header">
+                        <span class="slide-number">${index + 1} / ${slides.length}</span>
+                        <h2 class="slide-title">${slide.title}</h2>
+                    </div>
+                    <div class="slide-content">
+                        <p>${slide.content}</p>
+                    </div>
+                    ${slide.quiz ? generateQuizHTML(slide.quiz, index) : ''}
+                    <div class="slide-nav">
+                        ${index > 0 ? `<button class="btn-nav prev" onclick="showSlide(${index - 1})">← 上一章</button>` : ''}
+                        ${index < slides.length - 1 ? `<button class="btn-nav next" onclick="nextSlide(${index})">下一章 →</button>` : '<button class="btn-nav next" onclick="finishCourse()">完成课程</button>'}
+                    </div>
+                </div>
+            `).join('');
+            
+            return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${settings.title}</title>
+    <link rel="stylesheet" href="course.css">
+    <script src="scorm_api.js"><\/script>
+</head>
+<body>
+    <div class="course-container">
+        <div class="course-header">
+            <h1>${settings.title}</h1>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar"></div>
+            </div>
+        </div>
+        <div class="slides-container">
+            ${slidesHTML}
+        </div>
+    </div>
+    <script>
+        let currentSlide = 0;
+        const totalSlides = ${slides.length};
+        const quizAnswers = {};
+        const answeredSlides = new Set();
+        
+        function showSlide(index) {
+            if (index < 0 || index >= totalSlides) return;
+            
+            const currentSlideEl = document.querySelector('.slide.active');
+            const quizForm = currentSlideEl.querySelector('.quiz-form');
+            if (quizForm && !answeredSlides.has(currentSlide)) {
+                alert('请先完成本章测验！');
+                return;
+            }
+            
+            document.querySelectorAll('.slide').forEach((slide, i) => {
+                slide.classList.toggle('active', i === index);
+            });
+            currentSlide = index;
+            updateProgress();
+            
+            if (typeof SCORM_API !== 'undefined') {
+                SCORM_API.LMSSetValue('cmi.core.lesson_location', index.toString());
+            }
+        }
+        
+        function nextSlide(index) {
+            showSlide(index + 1);
+        }
+        
+        function updateProgress() {
+            const progress = ((currentSlide + 1) / totalSlides) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+        
+        function submitQuiz(slideIndex) {
+            const slide = document.querySelector('.slide[data-slide="' + slideIndex + '"]');
+            const form = slide.querySelector('.quiz-form');
+            const options = form.querySelectorAll('input[type="radio"], input[type="checkbox"]');
+            
+            let answered = false;
+            let correct = true;
+            
+            options.forEach(opt => {
+                if (opt.checked) {
+                    answered = true;
+                    if (!opt.dataset.correct === 'true') {
+                        correct = false;
+                    }
+                }
+            });
+            
+            if (!answered) {
+                alert('请选择一个答案！');
+                return false;
+            }
+            
+            answeredSlides.add(slideIndex);
+            quizAnswers[slideIndex] = correct;
+            
+            const result = form.querySelector('.quiz-result');
+            result.style.display = 'block';
+            result.className = 'quiz-result ' + (correct ? 'correct' : 'incorrect');
+            result.textContent = correct ? '✓ 回答正确！' : '✗ 回答错误，请重新学习本章内容。';
+            
+            if (typeof SCORM_API !== 'undefined') {
+                const score = Object.values(quizAnswers).filter(a => a).length / Object.keys(quizAnswers).length * 100;
+                SCORM_API.LMSSetValue('cmi.core.score.raw', score.toString());
+            }
+            
+            return true;
+        }
+        
+        function finishCourse() {
+            const correctCount = Object.values(quizAnswers).filter(a => a).length;
+            const totalQuiz = ${slides.filter(s => s.quiz).length};
+            const score = Math.round((correctCount / totalQuiz) * 100);
+            const passed = score >= ${settings.passingScore};
+            
+            alert('课程完成！\\n\\n您的得分：' + score + '分\\n' + (passed ? '恭喜通过！' : '未通过，请重新学习。'));
+            
+            if (typeof SCORM_API !== 'undefined') {
+                SCORM_API.LMSSetValue('cmi.core.lesson_status', passed ? 'completed' : 'incomplete');
+                SCORM_API.LMSFinish('');
+            }
+        }
+        
+        updateProgress();
+        if (typeof SCORM_API !== 'undefined') {
+            SCORM_API.LMSInitialize('');
+        }
+    <\/script>
+</body>
+</html>`;
+        }
+        
+        // 生成测验HTML
+        function generateQuizHTML(quiz, slideIndex) {
+            const inputType = quiz.type === 'multiple' ? 'checkbox' : 'radio';
+            
+            const optionsHTML = quiz.options.map((opt, i) => `
+                <label class="quiz-option">
+                    <input type="${inputType}" name="quiz_${slideIndex}" value="${i}" data-correct="${opt.correct}">
+                    <span>${String.fromCharCode(65 + i)}. ${opt.text}</span>
+                </label>
+            `).join('');
+            
+            return `
+                <div class="quiz-section">
+                    <h3>📝 章节测验</h3>
+                    <p class="quiz-question">${quiz.question}</p>
+                    <form class="quiz-form" onsubmit="event.preventDefault(); submitQuiz(${slideIndex});">
+                        ${optionsHTML}
+                        <button type="submit" class="quiz-submit">提交答案</button>
+                    </form>
+                    <div class="quiz-result" style="display: none;"></div>
+                </div>
+            `;
+        }
+        
+        // 生成SCORM API
+        function generateSCORMAPI(version) {
+            return `// SCORM ${version} API
+var SCORM_API = {
+    LMSInitialize: function(param) {
+        console.log('SCORM: LMSInitialize');
+        return 'true';
+    },
+    LMSFinish: function(param) {
+        console.log('SCORM: LMSFinish');
+        return 'true';
+    },
+    LMSSetValue: function(element, value) {
+        console.log('SCORM: LMSSetValue', element, value);
+        return 'true';
+    },
+    LMSGetValue: function(element) {
+        console.log('SCORM: LMSGetValue', element);
+        return '';
+    },
+    LMSCommit: function(param) {
+        console.log('SCORM: LMSCommit');
+        return 'true';
+    },
+    LMSGetLastError: function() {
+        return '0';
+    },
+    LMSGetErrorString: function(errorCode) {
+        return '';
+    },
+    LMSGetDiagnostic: function(errorCode) {
+        return '';
+    }
+};
+
+window.API = SCORM_API;
+window.API_1484_11 = SCORM_API;`;
+        }
+        
+        // 生成CSS
+        function generateCSS() {
+            return `* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
+    background: #f3f4f6;
+    line-height: 1.6;
+}
+
+.course-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.course-header {
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.course-header h1 {
+    font-size: 1.5rem;
+    color: #1f2937;
+    margin-bottom: 16px;
+}
+
+.progress-bar {
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
+    border-radius: 4px;
+    transition: width 0.3s;
+}
+
+.slide {
+    display: none;
+    background: white;
+    border-radius: 12px;
+    padding: 32px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.slide.active {
+    display: block;
+}
+
+.slide-header {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.slide-number {
+    font-size: 0.875rem;
+    color: #9ca3af;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.slide-title {
+    font-size: 1.5rem;
+    color: #1f2937;
+}
+
+.slide-content {
+    color: #4b5563;
+    line-height: 1.8;
+    margin-bottom: 32px;
+}
+
+.slide-content p {
+    margin-bottom: 16px;
+}
+
+.quiz-section {
+    background: #f9fafb;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.quiz-section h3 {
+    font-size: 1.125rem;
+    color: #1f2937;
+    margin-bottom: 16px;
+}
+
+.quiz-question {
+    color: #4b5563;
+    margin-bottom: 16px;
+    font-weight: 500;
+}
+
+.quiz-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.quiz-option:hover {
+    border-color: #7c3aed;
+}
+
+.quiz-option input {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.quiz-submit {
+    background: linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.quiz-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(124, 58, 237, 0.3);
+}
+
+.quiz-result {
+    padding: 16px;
+    border-radius: 8px;
+    margin-top: 16px;
+    font-weight: 500;
+}
+
+.quiz-result.correct {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.quiz-result.incorrect {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.slide-nav {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.btn-nav {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.btn-nav.prev {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+.btn-nav.next {
+    background: linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
+    color: white;
+}
+
+.btn-nav:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+}`;
+        }
+        
+        // 预览SCORM
+        function previewSCORM() {
+            if (!scormPackage) return;
+            
+            const previewArea = document.getElementById('previewArea');
+            const previewFrame = document.getElementById('previewFrame');
+            const successPanel = document.getElementById('successPanel');
+            
+            scormPackage.file('index.html').async('string').then(content => {
+                const blob = new Blob([content], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                previewFrame.src = url;
+                
+                previewArea.style.display = 'block';
+                successPanel.style.display = 'none';
+            });
+        }
+        
+        // 关闭预览
+        function closePreview() {
+            document.getElementById('previewArea').style.display = 'none';
+            document.getElementById('successPanel').style.display = 'block';
+            document.getElementById('previewFrame').src = '';
+        }
+        
+        // 下载SCORM
+        function downloadSCORM() {
+            if (!scormPackage) return;
+            
+            const title = document.getElementById('courseTitle').value || 'course';
+            const fileName = title.replace(/\s+/g, '_') + '_scorm.zip';
+            
+            scormPackage.generateAsync({ type: 'blob' }).then(blob => {
+                saveAs(blob, fileName);
+            });
+        }
+        
+        // 显示/隐藏加载
+        function showLoading(text) {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loadingOverlay').classList.add('show');
+        }
+        
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('show');
+        }
+    </script>
+</body>
+</html>
